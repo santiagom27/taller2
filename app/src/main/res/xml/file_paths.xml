@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Rutas accesibles por FileProvider para guardar las fotos de CameraX.
+    Referenciado desde AndroidManifest.xml en el bloque <provider>.
+-->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Almacenamiento externo de la app: /sdcard/Android/data/com.example.taller2/files/RouteShot/ -->
+    <external-files-path
+        name="routeshot_photos"
+        path="RouteShot/" />
+    <!-- Caché interno (fallback si no hay almacenamiento externo) -->
+    <cache-path
+        name="cache_photos"
+        path="." />
+</paths>

@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Paleta principal: verde naturaleza / recorrido -->
+    <color name="green_dark">#1B5E20</color>
+    <color name="green_mid">#2E7D32</color>
+    <color name="green_light">#A5D6A7</color>
+
+    <!-- Acento: naranja para marcadores y contadores -->
+    <color name="orange_dark">#FF6F00</color>
+    <color name="orange_light">#FFCC80</color>
+
+    <!-- Superficies -->
+    <color name="background">#F5F5F0</color>
+    <color name="surface_white">#FFFFFF</color>
+
+    <!-- Texto -->
+    <color name="on_dark">#FFFFFF</color>
+    <color name="on_light">#212121</color>
+
+    <!-- Error (permisos denegados) -->
+    <color name="error_red">#D32F2F</color>
+    <color name="error_bg">#FFCDD2</color>
+
+    <!-- Legado (requerido por algunos estilos de Material) -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
