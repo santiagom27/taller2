@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.NoPhotography
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +45,7 @@ fun MainScreen() {
     val isLandscape =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
+    // ── Permisos ─────────────────────────────────────────────────────────────
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
     val locationPermissions = rememberMultiplePermissionsState(
         permissions = listOf(
@@ -52,14 +54,14 @@ fun MainScreen() {
         )
     )
 
-    val photos = remember { mutableStateListOf<RoutePhoto>() }
-    val routePoints = remember { mutableStateListOf<LatLng>() }
+    // ── Estado compartido ─────────────────────────────────────────────────────
+    val photos       = remember { mutableStateListOf<RoutePhoto>() }
+    val routePoints  = remember { mutableStateListOf<LatLng>() }
 
-    var currentLocation by remember {
-        mutableStateOf(LatLng(4.60971, -74.08175))
-    }
-    var isTracking by remember { mutableStateOf(false) }
+    var currentLocation by remember { mutableStateOf(LatLng(4.60971, -74.08175)) }
+    var isTracking      by remember { mutableStateOf(false) }
 
+    // ── Solicitar permisos al inicio ──────────────────────────────────────────
     LaunchedEffect(Unit) {
         if (!cameraPermission.status.isGranted) {
             cameraPermission.launchPermissionRequest()
@@ -69,6 +71,7 @@ fun MainScreen() {
         }
     }
 
+    // ── Acciones del recorrido ────────────────────────────────────────────────
     val startTracking = {
         isTracking = true
         if (routePoints.isEmpty()) {
@@ -82,9 +85,9 @@ fun MainScreen() {
         routePoints.clear()
     }
 
+    // Recibe actualizaciones de ubicación desde MapSection (GPS o cámara del mapa)
     val updateLocation: (LatLng) -> Unit = { newLocation ->
         currentLocation = newLocation
-
         if (isTracking) {
             val lastPoint = routePoints.lastOrNull()
             if (lastPoint == null || shouldAddPoint(lastPoint, newLocation)) {
@@ -93,23 +96,28 @@ fun MainScreen() {
         }
     }
 
+    // ── Layout adaptativo: portrait = Column, landscape = Row ─────────────────
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         if (isLandscape) {
+            // LANDSCAPE: mapa a la izquierda, cámara a la derecha
             val halfWidth = maxWidth / 2
 
             Row(modifier = Modifier.fillMaxSize()) {
+
+                // Mapa (mitad izquierda)
                 MapSection(
-                    modifier = Modifier
+                    modifier        = Modifier
                         .width(halfWidth)
                         .fillMaxHeight(),
-                    photos = photos,
-                    routePoints = routePoints,
-                    isTracking = isTracking,
+                    photos          = photos,
+                    routePoints     = routePoints,
+                    isTracking      = isTracking,
                     onStartTracking = startTracking,
-                    onClear = clearAll,
+                    onClear         = clearAll,
                     onLocationChange = updateLocation
                 )
 
+                // Divisor vertical
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
@@ -117,68 +125,70 @@ fun MainScreen() {
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.35f))
                 )
 
+                // Cámara (mitad derecha) — o mensaje de permiso denegado
                 if (cameraPermission.status.isGranted) {
                     CameraSection(
-                        modifier = Modifier
+                        modifier        = Modifier
                             .width(halfWidth)
                             .fillMaxHeight(),
                         currentLocation = currentLocation,
-                        photos = photos,
-                        onPhotoSaved = { photo ->
-                            photos.add(photo)
-                        }
+                        photos          = photos,
+                        onPhotoSaved    = { photo -> photos.add(photo) }
                     )
                 } else {
                     PermissionDeniedSection(
                         modifier = Modifier
                             .width(halfWidth)
                             .fillMaxHeight(),
-                        icon = Icons.Default.NoPhotography,
-                        message = "Debes conceder permiso de cámara para usar esta sección.",
-                        onRetry = { cameraPermission.launchPermissionRequest() }
+                        icon     = Icons.Default.NoPhotography,
+                        message  = "Debes conceder permiso de cámara para usar esta sección.",
+                        onRetry  = { cameraPermission.launchPermissionRequest() }
                     )
                 }
             }
+
         } else {
+            // PORTRAIT: cámara arriba, mapa abajo
             val halfHeight = maxHeight / 2
 
             Column(modifier = Modifier.fillMaxSize()) {
+
+                // Cámara (mitad superior) — o mensaje de permiso denegado
                 if (cameraPermission.status.isGranted) {
                     CameraSection(
-                        modifier = Modifier
+                        modifier        = Modifier
                             .fillMaxWidth()
                             .height(halfHeight),
                         currentLocation = currentLocation,
-                        photos = photos,
-                        onPhotoSaved = { photo ->
-                            photos.add(photo)
-                        }
+                        photos          = photos,
+                        onPhotoSaved    = { photo -> photos.add(photo) }
                     )
                 } else {
                     PermissionDeniedSection(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(halfHeight),
-                        icon = Icons.Default.NoPhotography,
-                        message = "Debes conceder permiso de cámara para usar esta sección.",
-                        onRetry = { cameraPermission.launchPermissionRequest() }
+                        icon     = Icons.Default.NoPhotography,
+                        message  = "Debes conceder permiso de cámara para usar esta sección.",
+                        onRetry  = { cameraPermission.launchPermissionRequest() }
                     )
                 }
 
                 HorizontalDivider(
                     thickness = 2.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    color     = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                 )
 
+                // Mapa (mitad inferior)
                 MapSection(
-                    modifier = Modifier
+                    modifier        = Modifier
                         .fillMaxWidth()
                         .height(halfHeight),
-                    photos = photos,
-                    routePoints = routePoints,
-                    isTracking = isTracking,
+                    photos          = photos,
+                    routePoints     = routePoints,
+                    isTracking      = isTracking,
                     onStartTracking = startTracking,
-                    onClear = clearAll,
+                    onClear         = clearAll,
                     onLocationChange = updateLocation
                 )
             }
