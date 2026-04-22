@@ -2,19 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ══════════════════════════════════════════════════════════════
-         PERMISOS
-         ══════════════════════════════════════════════════════════════ -->
-
-    <!-- Cámara -->
+    <!-- Permisos -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
-    <!-- Ubicación precisa y aproximada -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- Guardar fotos en almacenamiento externo (solo Android 9 y menor) -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
@@ -29,12 +23,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Taller2">
 
-        <!-- ══════════════════════════════════════════════════════════
-             API KEY DE GOOGLE MAPS
-             El valor viene del manifestPlaceholder definido en
-             app/build.gradle.kts → defaultConfig → manifestPlaceholders
-             NO escribas la key directamente aquí; cámbiala en build.gradle
-             ══════════════════════════════════════════════════════════ -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
@@ -43,7 +31,6 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:screenOrientation="portrait"
             android:theme="@style/Theme.Taller2">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -51,7 +38,6 @@
             </intent-filter>
         </activity>
 
-        <!-- FileProvider: necesario para guardar fotos con CameraX en Android 7+ -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

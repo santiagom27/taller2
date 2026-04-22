@@ -12,13 +12,11 @@ composeBom = "2024.09.00"
 # Librería de permisos — requerido: 0.37.3
 accompanist = "0.37.3"
 
-# CameraX — requerido: 1.4.x (1.6.0 aún no existe como release estable)
-camerax = "1.4.2"
+# CameraX — requerido: 1.6.0
+camerax = "1.6.0"
 
 # Maps Compose — requerido: 8.2.2
-# NOTA: 8.2.2 aún no existe; la más cercana estable es 6.4.1
-# Si el profesor exige exactamente 8.2.2, cambia este valor
-mapsCompose = "6.4.1"
+mapsCompose = "8.2.2"
 playServicesMaps = "19.0.0"
 
 # Play Services Location — requerido: 21.3.0
@@ -48,14 +46,14 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
 
 # CameraX
-camera-core      = { group = "androidx.camera", name = "camera-core",      version.ref = "camerax" }
-camera-camera2   = { group = "androidx.camera", name = "camera-camera2",   version.ref = "camerax" }
-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle",  version.ref = "camerax" }
-camera-view      = { group = "androidx.camera", name = "camera-view",       version.ref = "camerax" }
+camera-core      = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+camera-camera2   = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+camera-view      = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 
 # Maps
-maps-compose      = { group = "com.google.maps.android",    name = "maps-compose",      version.ref = "mapsCompose" }
-play-services-maps = { group = "com.google.android.gms",   name = "play-services-maps", version.ref = "playServicesMaps" }
+maps-compose       = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
+play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
 
 # Location
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
@@ -65,4 +63,4 @@ kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "ko
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-compose      = { id = "org.jetbrains.kotlin.plugin.compose",  version.ref = "kotlin" }
+kotlin-compose      = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
