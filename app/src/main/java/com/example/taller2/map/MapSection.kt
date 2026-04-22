@@ -24,7 +24,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,8 +43,14 @@ import com.google.maps.android.compose.MarkerComposable
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import androidx.compose.runtime.snapshotFlow
 
+@OptIn(FlowPreview::class)
 @Composable
 fun MapSection(
     modifier: Modifier,
@@ -64,29 +69,42 @@ fun MapSection(
 
     val routeColor = MaterialTheme.colorScheme.primary
 
+    // ── Escucha el centro del mapa con debounce ───────────────────────────────
+    // Sin debounce: mientras el usuario arrastra, se emiten decenas de posiciones
+    // intermedias por segundo → todas pasan por shouldAddPoint → puntos falsos
+    // en el recorrido → línea quebrada.
+    //
+    // Con debounce(600ms): el flujo solo emite cuando el mapa lleva 600ms quieto.
+    // Eso significa que mientras el usuario arrastra no se registra nada, y solo
+    // cuando suelta el dedo se toma la posición final como "ubicación actual".
+    //
+    // distinctUntilChanged: evita emitir si el usuario tocó el mapa pero lo dejó
+    // exactamente en el mismo lugar.
+    //
+    // filter(!isMoving): descarta emisiones mientras la animación de inercia
+    // del mapa todavía está en curso.
     LaunchedEffect(cameraPositionState) {
-        snapshotFlow { cameraPositionState.position.target }
-            .collectLatest { target ->
+        snapshotFlow { cameraPositionState.isMoving to cameraPositionState.position.target }
+            .filter  { (isMoving, _) -> !isMoving }
+            .debounce(600L)
+            .distinctUntilChanged { old, new -> old.second == new.second }
+            .collectLatest { (_, target) ->
                 onLocationChange(target)
             }
     }
 
     Box(modifier = modifier) {
         GoogleMap(
-            modifier = Modifier.fillMaxSize(),
+            modifier            = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
-            uiSettings = MapUiSettings(
-                zoomControlsEnabled = true,
-                compassEnabled = true,
+            uiSettings          = MapUiSettings(
+                zoomControlsEnabled     = true,
+                compassEnabled          = true,
                 myLocationButtonEnabled = false
             )
         ) {
-            // ── Marcadores con miniatura de la foto ──────────────────────────
-            photos.forEach { photo ->
-                PhotoMarker(photo = photo)
-            }
+            photos.forEach { photo -> PhotoMarker(photo = photo) }
 
-            // ── Polyline del recorrido ───────────────────────────────────────
             if (routePoints.size >= 2) {
                 Polyline(
                     points = routePoints,
@@ -96,7 +114,7 @@ fun MapSection(
             }
         }
 
-        // ── Etiqueta sección ─────────────────────────────────────────────────
+        // ── Etiqueta sección ──────────────────────────────────────────────────
         Surface(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -112,7 +130,7 @@ fun MapSection(
             )
         }
 
-        // ── Botones Iniciar / Borrar ──────────────────────────────────────────
+        // ── Botones Iniciar / Borrar ───────────────────────────────────────────
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -123,23 +141,17 @@ fun MapSection(
                 onClick = onStartTracking,
                 enabled = !isTracking
             ) {
-                Icon(
-                    imageVector        = Icons.Default.PlayArrow,
-                    contentDescription = "Iniciar recorrido"
-                )
+                Icon(Icons.Default.PlayArrow, contentDescription = "Iniciar recorrido")
                 Text(if (isTracking) " En curso" else " Iniciar")
             }
 
             FilledTonalButton(onClick = onClear) {
-                Icon(
-                    imageVector        = Icons.Default.Delete,
-                    contentDescription = "Borrar recorrido"
-                )
+                Icon(Icons.Default.Delete, contentDescription = "Borrar recorrido")
                 Text(" Borrar")
             }
         }
 
-        // ── Hint inferior ─────────────────────────────────────────────────────
+        // ── Hint inferior ──────────────────────────────────────────────────────
         Surface(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -148,7 +160,7 @@ fun MapSection(
             color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.92f)
         ) {
             Text(
-                text     = "Mueve el mapa para cambiar la ubicación de la foto",
+                text     = if (isTracking) "Recorrido en curso…" else "Mueve el mapa para cambiar la ubicación de la foto",
                 color    = Color.White,
                 fontSize = 11.sp,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -159,15 +171,12 @@ fun MapSection(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MARCADOR CON MINIATURA
-// Usa MarkerComposable para mostrar la foto dentro del pin del mapa.
-// La imagen se carga de forma asíncrona con produceState + loadBitmap.
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun PhotoMarker(photo: RoutePhoto) {
     val context = LocalContext.current
 
-    // Carga el bitmap de forma asíncrona (suspending fun en IO)
     val bitmap by produceState<Bitmap?>(
         initialValue = null,
         key1         = photo.uri
@@ -179,21 +188,14 @@ private fun PhotoMarker(photo: RoutePhoto) {
         state   = MarkerState(position = photo.location),
         title   = photo.name,
         snippet = "Foto tomada durante el recorrido",
-        // anchor centra el marcador horizontalmente y lo ancla por la punta inferior
         anchor  = androidx.compose.ui.geometry.Offset(0.5f, 1f)
     ) {
-        // Contenedor del marcador: miniatura + triángulo inferior
         Box(contentAlignment = Alignment.TopCenter) {
-            // ── Thumbnail ────────────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .border(
-                        width = 2.5.dp,
-                        color = Color.White,
-                        shape = RoundedCornerShape(10.dp)
-                    )
+                    .border(2.5.dp, Color.White, RoundedCornerShape(10.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (bitmap != null) {
@@ -204,37 +206,27 @@ private fun PhotoMarker(photo: RoutePhoto) {
                         contentScale       = ContentScale.Crop
                     )
                 } else {
-                    // Placeholder mientras carga
                     Box(
                         modifier         = Modifier
                             .fillMaxSize()
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text     = "📷",
-                            fontSize = 22.sp
-                        )
+                        Text(text = "📷", fontSize = 22.sp)
                     }
                 }
             }
 
-            // ── Triángulo / punta inferior del marcador ───────────────────────
-            // Se simula con un Box pequeño rotado
             Box(
                 modifier = Modifier
                     .padding(top = 60.dp)
                     .size(width = 14.dp, height = 10.dp)
-                    .background(
-                        color = Color.White,
-                        shape = TriangleShape
-                    )
+                    .background(color = Color.White, shape = TriangleShape)
             )
         }
     }
 }
 
-// Forma triangular para la punta del marcador
 private val TriangleShape = object : androidx.compose.ui.graphics.Shape {
     override fun createOutline(
         size: androidx.compose.ui.geometry.Size,
@@ -242,9 +234,9 @@ private val TriangleShape = object : androidx.compose.ui.graphics.Shape {
         density: androidx.compose.ui.unit.Density
     ): androidx.compose.ui.graphics.Outline {
         val path = androidx.compose.ui.graphics.Path().apply {
-            moveTo(size.width / 2f, size.height) // punta inferior
-            lineTo(0f, 0f)                        // esquina superior izquierda
-            lineTo(size.width, 0f)                // esquina superior derecha
+            moveTo(size.width / 2f, size.height)
+            lineTo(0f, 0f)
+            lineTo(size.width, 0f)
             close()
         }
         return androidx.compose.ui.graphics.Outline.Generic(path)
